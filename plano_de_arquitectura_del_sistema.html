@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Arquitectura de Software - Sistema de Soporte Wi-Fi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f5ff',
+                            100: '#e0ebff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .node-pulse {
+            animation: pulse-light 2s infinite;
+        }
+        @keyframes pulse-light {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
+            70% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3.5">
+                    <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-indigo-600/20">
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-base font-bold text-slate-900 tracking-tight">Arquitectura de Sistema Wi-Fi</h1>
+                            <span class="px-2 py-0.5 text-[10px] font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">v1.0 Spec</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Especificación de Soporte Automatizado (Malena + Evolution API)</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-1 sm:space-x-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200">
+                    <button onclick="switchTab('arch')" id="tab-arch" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm border border-slate-200/60">
+                        <i class="fa-solid fa-diagram-project mr-1.5 text-indigo-500"></i> 1. Arquitectura
+                    </button>
+                    <button onclick="switchTab('figma')" id="tab-figma" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-brands fa-figma mr-1.5 text-purple-600"></i> Vista Canvas (Figma)
+                    </button>
+                    <button onclick="switchTab('seq')" id="tab-seq" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-route mr-1.5 text-slate-400"></i> 2. Secuencia
+                    </button>
+                    <button onclick="switchTab('data')" id="tab-data" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-database mr-1.5 text-slate-400"></i> 3. Modelo de Datos
+                    </button>
+                    <button onclick="switchTab('lab')" id="tab-lab" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-flask mr-1.5 text-slate-400"></i> 4. Entorno de Lab
+                    </button>
+                </nav>
+
+                <div class="hidden md:flex items-center space-x-2">
+                    <button onclick="exportJSON()" class="px-3.5 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download text-xs text-slate-300"></i> Exportar Config
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: ARQUITECTURA DE ALTO NIVEL -->
+        <section id="sec-arch" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-cubes text-indigo-600"></i> Diagrama de Arquitectura Multicapa
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Haz clic en cualquier bloque o nodo para editar sus especificaciones o parámetros de API.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span> Blueprint Vivo
+                    </span>
+                    <button onclick="resetArchData()" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition">
+                        <i class="fa-solid fa-rotate-left mr-1 text-slate-500"></i> Restaurar
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Diagram Visual Area -->
+                <div class="lg:col-span-2 bg-slate-100/50 p-6 rounded-2xl border border-slate-200/80 space-y-6 custom-scrollbar overflow-x-auto">
+                    
+                    <!-- Layer 1: Inputs -->
+                    <div class="space-y-2.5">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-mono">01. Capa de Entrada & Canales</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div onclick="selectNode('node-wa')" id="node-wa" class="arch-card p-4 rounded-xl bg-white border-2 border-emerald-200 hover:border-emerald-500 shadow-sm cursor-pointer transition-all">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3.5">
+                                        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+                                            <i class="fa-brands fa-whatsapp text-2xl"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-sm text-slate-900">Evolution API</h3>
+                                            <p class="text-xs text-slate-500">WhatsApp Gateway (Lista Blanca)</p>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                                </div>
+                            </div>
+
+                            <div onclick="selectNode('node-portal')" id="node-portal" class="arch-card p-4 rounded-xl bg-white border-2 border-indigo-200 hover:border-indigo-500 shadow-sm cursor-pointer transition-all">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3.5">
+                                        <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                                            <i class="fa-solid fa-desktop text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-sm text-slate-900">Portal Malena Cloud</h3>
+                                            <p class="text-xs text-slate-500">Dashboard Web Recepción/Sistemas</p>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connector Line -->
+                    <div class="flex justify-center text-slate-300 text-base">
+                        <i class="fa-solid fa-arrow-down-long animate-bounce"></i>
+                    </div>
+
+                    <!-- Layer 2: Orchestration & AI -->
+                    <div class="space-y-2.5">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-mono">02. Capa de Lógica, Orquestación e IA</span>
+                        <div onclick="selectNode('node-engine')" id="node-engine" class="arch-card p-4.5 rounded-xl bg-white border-2 border-purple-200 hover:border-purple-500 shadow-sm cursor-pointer transition-all">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3.5">
+                                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
+                                        <i class="fa-solid fa-brain text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-bold text-sm text-slate-900">Motor n8n + Agente IA Nivel 1</h3>
+                                            <span class="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-mono font-semibold border border-purple-200">Cerebro Central</span>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-0.5">Parseo de lenguaje natural, coincidencia de Host Group y trigger de Webhooks</p>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connector Line -->
+                    <div class="flex justify-center text-slate-300 text-base">
+                        <i class="fa-solid fa-arrow-down-long animate-bounce"></i>
+                    </div>
+
+                    <!-- Layer 3: Core & Monitoring -->
+                    <div class="space-y-2.5">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-mono">03. Capa de Negocio & Monitoreo Topológico</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div onclick="selectNode('node-tickets')" id="node-tickets" class="arch-card p-4 rounded-xl bg-white border-2 border-amber-200 hover:border-amber-500 shadow-sm cursor-pointer transition-all">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3.5">
+                                        <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+                                            <i class="fa-solid fa-ticket text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-sm text-slate-900">Sistema de Tickets Malena</h3>
+                                            <p class="text-xs text-slate-500">Creación de casos & Métricas</p>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                                </div>
+                            </div>
+
+                            <div onclick="selectNode('node-zabbix')" id="node-zabbix" class="arch-card p-4 rounded-xl bg-white border-2 border-rose-200 hover:border-rose-500 shadow-sm cursor-pointer transition-all">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3.5">
+                                        <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
+                                            <i class="fa-solid fa-network-wired text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-sm text-slate-900">Zabbix Monitoring</h3>
+                                            <p class="text-xs text-slate-500">Mapeo de APs e Infraestructura</p>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connector Line -->
+                    <div class="flex justify-center text-slate-300 text-base">
+                        <i class="fa-solid fa-arrow-down-long animate-bounce"></i>
+                    </div>
+
+                    <!-- Layer 4: Physical Hardware -->
+                    <div class="space-y-2.5">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block font-mono">04. Capa de Infraestructura Física & Actuadores</span>
+                        <div onclick="selectNode('node-poe')" id="node-poe" class="arch-card p-4 rounded-xl bg-white border-2 border-cyan-200 hover:border-cyan-500 shadow-sm cursor-pointer transition-all">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3.5">
+                                    <div class="p-3 bg-cyan-50 text-cyan-600 rounded-xl border border-cyan-100">
+                                        <i class="fa-solid fa-plug-circle-bolt text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-sm text-slate-900">Switch PoE Managed (Power over Ethernet)</h3>
+                                        <p class="text-xs text-slate-500">Corte de alimentación 5s -> Restablecimiento del puerto del AP (Cubre 80-85% fallas)</p>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Node Inspector & Editor Sidebar -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-indigo-600"></i> Inspector de Componente
+                            </h3>
+                            <span id="node-tag" class="text-[10px] font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-semibold">Seleccionado</span>
+                        </div>
+
+                        <form id="node-edit-form" class="space-y-4" onsubmit="saveNodeDetails(event)">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Nombre del Componente</label>
+                                <input type="text" id="edit-node-title" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Tecnología / Framework</label>
+                                <input type="text" id="edit-node-tech" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Rol y Responsabilidad</label>
+                                <textarea id="edit-node-desc" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 custom-scrollbar leading-relaxed"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Protocolo / Interface API</label>
+                                <input type="text" id="edit-node-api" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-indigo-600 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold">
+                            </div>
+
+                            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-floppy-disk text-xs"></i> Guardar Cambios
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 bg-amber-50/60 p-3.5 rounded-xl border border-amber-200/60">
+                        <div class="flex items-center space-x-2 text-amber-800 text-xs font-bold">
+                            <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                            <span>Aislamiento PoE Seguro</span>
+                        </div>
+                        <p class="text-[11px] text-amber-900/80 mt-1 leading-relaxed">El corte de energía PoE reinicia únicamente el puerto asignado al AP de la habitación reportada, garantizando cero afectación en el resto de la propiedad.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB FIGMA: CANVAS ESTILO FIGMA INTERACTIVO -->
+        <section id="sec-figma" class="space-y-4 hidden">
+            <!-- Figma Header Bar -->
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3.5">
+                    <div class="p-2.5 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
+                        <i class="fa-brands fa-figma text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            Lienzo Infinito de Arquitectura (Estilo Figma)
+                        </h2>
+                        <p class="text-xs text-slate-500">Arrastra nodos, haz zoom, desplázate libremente y edita las conexiones en modo gráfico.</p>
+                    </div>
+                </div>
+
+                <!-- Figma Toolbar Controls -->
+                <div class="flex items-center space-x-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
+                    <button onclick="setFigmaTool('select')" id="tool-select" class="px-3 py-1.5 rounded-lg bg-white text-indigo-600 font-semibold shadow-sm border border-slate-200/80">
+                        <i class="fa-solid fa-arrow-pointer mr-1.5 text-xs"></i> Mover
+                    </button>
+                    <button onclick="setFigmaTool('hand')" id="tool-hand" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold">
+                        <i class="fa-solid fa-hand mr-1.5 text-xs"></i> Pan
+                    </button>
+                    <div class="h-4 w-px bg-slate-200 my-auto"></div>
+                    <button onclick="zoomFigma(0.1)" class="p-1.5 rounded-lg text-slate-600 hover:bg-white transition" title="Zoom In">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </button>
+                    <span id="zoom-level" class="font-mono text-xs font-semibold text-slate-600 px-1.5">100%</span>
+                    <button onclick="zoomFigma(-0.1)" class="p-1.5 rounded-lg text-slate-600 hover:bg-white transition" title="Zoom Out">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </button>
+                    <button onclick="resetFigmaView()" class="p-1.5 rounded-lg text-slate-600 hover:bg-white transition" title="Centrar Vista">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Figma Canvas Workarea -->
+            <div id="figma-canvas-viewport" class="relative w-full h-[650px] bg-slate-100/70 rounded-2xl border border-slate-200/80 overflow-hidden cursor-crosshair select-none shadow-inner">
+                <!-- Dot Grid Background -->
+                <div id="figma-grid-bg" class="absolute inset-0 pointer-events-none" style="background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 24px 24px;"></div>
+                
+                <!-- SVG Connection Lines -->
+                <svg id="figma-lines-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                    <!-- Dynamic Connection Curves -->
+                </svg>
+
+                <!-- Interactive World Container (Transformed via Pan/Zoom) -->
+                <div id="figma-world" class="absolute inset-0 transform-gpu origin-top-left transition-transform duration-75">
+                    <!-- Dynamic Figma Nodes Inserted Here via JS -->
+                </div>
+
+                <!-- Figma Floating Mini-Map / Navigator -->
+                <div class="absolute bottom-4 right-4 bg-white/90 border border-slate-200 p-3 rounded-xl backdrop-blur text-xs text-slate-600 flex items-center space-x-3 shadow-lg z-20 font-medium">
+                    <i class="fa-solid fa-compass text-purple-600 text-sm"></i>
+                    <span>Mantén <b>Shift + Arrastrar</b> o usa la herramienta <b>Pan</b> para desplazarte</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: DIAGRAMA DE SECUENCIA Y FLUJO -->
+        <section id="sec-seq" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-route text-purple-600"></i> Flujo de Secuencia - Soporte Nivel 1
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Etapas desde la detección del incidente hasta la validación mediante el protocolo de 3 pruebas.</p>
+                </div>
+                <button onclick="addSeqStep()" class="px-3.5 py-1.5 text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i> Añadir Paso
+                </button>
+            </div>
+
+            <!-- Interactive Timeline Steps -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                <div id="sequence-steps-container" class="space-y-4">
+                    <!-- Steps render dynamically via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: MODELO DE DATOS Y ENTIDADES -->
+        <section id="sec-data" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-database text-amber-600"></i> Modelo de Datos & Entidades
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Definición de esquemas, relaciones y atributos para almacenamiento del sistema.</p>
+                </div>
+                <button onclick="addEntity()" class="px-3.5 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i> Nueva Entidad
+                </button>
+            </div>
+
+            <!-- Entities Grid -->
+            <div id="entities-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Data entities render dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- TAB 4: ENTORNO DE LAB & PRUEBAS -->
+        <section id="sec-lab" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-flask text-emerald-600"></i> Especificación de Banco de Pruebas (Lab)
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Checklist y requerimientos del hardware de laboratorio previo a despliegue en producción.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3">Checklist del Entorno de Pruebas (Piloto)</h3>
+                    
+                    <div id="lab-checklist" class="space-y-3">
+                        <!-- Checklist dynamically rendered -->
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex gap-2">
+                        <input type="text" id="new-lab-item" placeholder="Añadir nuevo requerimiento al Lab..." class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        <button onclick="addLabItem()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition">Añadir</button>
+                    </div>
+                </div>
+
+                <!-- Test Execution Protocol -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2 border-b border-slate-100 pb-3">
+                        <i class="fa-solid fa-vial-circle-check text-emerald-600"></i> Protocolo de Validación (3 Pruebas)
+                    </h3>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                            <div class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-globe text-indigo-500"></i> 1. Navegación Web
+                            </div>
+                            <p class="text-slate-500 text-[11px] leading-relaxed">Abrir buscador Google y realizar consulta de prueba.</p>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                            <div class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                                <i class="fa-brands fa-youtube text-red-500"></i> 2. Streaming de Video
+                            </div>
+                            <p class="text-slate-500 text-[11px] leading-relaxed">Reproducción continua en la App de YouTube en HD.</p>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                            <div class="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-share-nodes text-emerald-500"></i> 3. Redes Sociales
+                            </div>
+                            <p class="text-slate-500 text-[11px] leading-relaxed">Carga de feed o contenido multimedia en red social.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2.5 transition-all duration-300 opacity-0 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-msg">Notificación</span>
+    </div>
+
+    <!-- JavaScript Data and Interactivity Logic -->
+    <script>
+        // Data Structures
+        let architectureNodes = {
+            'node-wa': {
+                id: 'node-wa',
+                title: 'Evolution API (WhatsApp Gateway)',
+                tech: 'Node.js / Docker Container',
+                desc: 'Servicio de integración con WhatsApp. Gestiona el envío y recepción de mensajes. Aplica filtro de lista blanca por número de teléfono autorizado.',
+                api: 'POST /message/sendText, Webhook /events',
+                color: 'emerald',
+                x: 100, y: 80
+            },
+            'node-portal': {
+                id: 'node-portal',
+                title: 'Portal Web Malena Cloud',
+                tech: 'React / HTML5 Dashboard',
+                desc: 'Interfaz de usuario para el personal del hotel (Recepción/Sistemas). Permite reportar problemas manualmente y visualizar el estado del switch en tiempo real.',
+                api: 'HTTPS REST API / JSON Web Tokens',
+                color: 'indigo',
+                x: 450, y: 80
+            },
+            'node-engine': {
+                id: 'node-engine',
+                title: 'Motor n8n + Agente IA',
+                tech: 'n8n Workflow Engine + OpenAI / Local LLM',
+                desc: 'Cerebro orquestador. Interpreta el lenguaje natural, identifica la habitación reportada, busca la equivalencia en Zabbix y desencadena la acción en el puerto PoE.',
+                api: 'Webhooks Inbound / Outbound JSON',
+                color: 'purple',
+                x: 275, y: 260
+            },
+            'node-tickets': {
+                id: 'node-tickets',
+                title: 'Sistema de Tickets Malena',
+                tech: 'Malena Core API Backend',
+                desc: 'Modulo encendido para apertura de casos, asignación de folios, trazabilidad y recopilación de estadísticas operativas del servicio.',
+                api: 'POST /v1/tickets/create, PATCH /v1/tickets/close',
+                color: 'amber',
+                x: 100, y: 440
+            },
+            'node-zabbix': {
+                id: 'node-zabbix',
+                title: 'Zabbix Infrastructure Monitoring',
+                tech: 'Zabbix API Server',
+                desc: 'Almacena la topología técnica. Relaciona el Host Group (Hotel) y número de habitación con la IP del Switch y el número de puerto PoE exacto.',
+                api: 'Zabbix API (host.get, item.get)',
+                color: 'rose',
+                x: 450, y: 440
+            },
+            'node-poe': {
+                id: 'node-poe',
+                title: 'Switch PoE Managed',
+                tech: 'SNMP / SSH / Vendor API (PoE Controller)',
+                desc: 'Actuador físico. Suspende el suministro eléctrico en el puerto del AP correspondiente durante 5 segundos y vuelve a restablecerlo.',
+                api: 'SNMPSET (poePortAdminEnable) / SSH Commands',
+                color: 'cyan',
+                x: 275, y: 620
+            }
+        };
+
+        let nodeConnections = [
+            { from: 'node-wa', to: 'node-engine' },
+            { from: 'node-portal', to: 'node-engine' },
+            { from: 'node-engine', to: 'node-tickets' },
+            { from: 'node-engine', to: 'node-zabbix' },
+            { from: 'node-zabbix', to: 'node-poe' }
+        ];
+
+        // Figma Canvas State
+        let figmaZoom = 1.0;
+        let figmaPanX = 50;
+        let figmaPanY = 30;
+        let activeTool = 'select';
+        let isPanning = false;
+        let isDraggingNode = false;
+        let draggedNodeId = null;
+        let startX, startY;
+
+        let sequenceSteps = [
+            { id: 1, title: 'Recepción del Reporte', actor: 'Operador / Recepción', desc: 'Envío de mensaje vía WhatsApp o Ticket en Portal: "No hay internet en hab 220".' },
+            { id: 2, title: 'Validación & Parsing IA', actor: 'Evolution API + n8n + IA', desc: 'Verifica número autorizado. Extrae Host Group (Hotel) y Habitación 220.' },
+            { id: 3, title: 'Lookup Topológico', actor: 'n8n -> Zabbix API', desc: 'Zabbix retorna IP del Switch PoE (ej: 192.168.10.50) y Puerto (ej: Port 14).' },
+            { id: 4, title: 'Ejecución Reinicio PoE', actor: 'n8n -> Switch PoE', desc: 'Corte de alimentación (Power OFF), pausa de 5s, restablecimiento (Power ON).' },
+            { id: 5, title: 'Envío de Instrucción', actor: 'Evolution API -> Operador', desc: 'Notifica que el AP se está sincronizando y solicita pedir al huésped olvidar red Wi-Fi.' },
+            { id: 6, title: 'Protocolo de 3 Pruebas', actor: 'Operador del Hotel', desc: 'Validación en sitio: 1. Navegador, 2. Video YouTube, 3. Red Social.' },
+            { id: 7, title: 'Cierre y Métrica', actor: 'Malena Tickets Core', desc: 'Confirmación exitosa del operador -> Cierre automático del ticket y registro estadístico.' }
+        ];
+
+        let dataEntities = [
+            {
+                name: 'HostGroup (Hotel / Sitio)',
+                color: 'indigo',
+                attributes: [
+                    { name: 'id', type: 'UUID', desc: 'Identificador único del hotel' },
+                    { name: 'name', type: 'STRING', desc: 'Nombre comercial (ej. Hotel Terra Nova)' },
+                    { name: 'wifi_ssid', type: 'STRING', desc: 'Nombre de la red Wi-Fi para huéspedes' },
+                    { name: 'zabbix_group_id', type: 'INT', desc: 'ID de correspondencia en Zabbix' }
+                ]
+            },
+            {
+                name: 'AccessPoint (Punto de Acceso)',
+                color: 'purple',
+                attributes: [
+                    { name: 'id', type: 'UUID', desc: 'Identificador interno del AP' },
+                    { name: 'hostgroup_id', type: 'FK', desc: 'Relación con el HostGroup' },
+                    { name: 'room_identifier', type: 'STRING', desc: 'Habitación o zona (ej. Habitación 220)' },
+                    { name: 'switch_ip', type: 'IP_ADDR', desc: 'IP de administración del Switch PoE' },
+                    { name: 'poe_port', type: 'INT', desc: 'Número del puerto físico en el switch' }
+                ]
+            },
+            {
+                name: 'Ticket (Incidencia)',
+                color: 'amber',
+                attributes: [
+                    { name: 'id', type: 'UUID', desc: 'Folio del reporte' },
+                    { name: 'hostgroup_id', type: 'FK', desc: 'Hotel de origen' },
+                    { name: 'channel', type: 'ENUM', desc: 'WhatsApp / Portal Malena' },
+                    { name: 'status', type: 'ENUM', desc: 'OPEN / POE_REBOOTING / CLOSED / ESCALATED' },
+                    { name: 'created_at', type: 'TIMESTAMP', desc: 'Hora de apertura para métricas' }
+                ]
+            },
+            {
+                name: 'AuthorizedUser (Lista Blanca)',
+                color: 'emerald',
+                attributes: [
+                    { name: 'phone_number', type: 'STRING', desc: 'Número de WhatsApp con permiso' },
+                    { name: 'hostgroup_id', type: 'FK', desc: 'Hotel al que está asignado' },
+                    { name: 'role', type: 'STRING', desc: 'Recepción / Sistemas / Gerencia' }
+                ]
+            }
+        ];
+
+        let labChecklist = [
+            { id: 1, title: 'Servidor Virtual de Pruebas (Lab)', desc: 'Entorno aislado que replica la API de Malena y Zabbix.', checked: true },
+            { id: 2, title: 'Switch PoE y AP Físico de Escritorio', desc: 'Hardware en banco de trabajo para verificar comandos de corte eléctrico por software sin riesgo operativo.', checked: true },
+            { id: 3, title: 'Instancia Evolution API de Pruebas', desc: 'Número de WhatsApp de prueba dedicado exclusivamente a números de desarrolladores.', checked: true },
+            { id: 4, title: 'Flujo Inicial en n8n', desc: 'Webhook configurado para recibir peticiones y ejecutar reinicios simulados.', checked: false }
+        ];
+
+        let selectedNodeId = 'node-wa';
+
+        // Initialize UI
+        document.addEventListener('DOMContentLoaded', () => {
+            selectNode('node-wa');
+            renderSequenceSteps();
+            renderEntities();
+            renderLabChecklist();
+            initFigmaCanvas();
+        });
+
+        // Tab Switching Logic
+        function switchTab(tab) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm', 'border', 'border-slate-200/60');
+                b.classList.add('text-slate-600');
+            });
+
+            document.getElementById(`sec-${tab}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            activeBtn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm', 'border', 'border-slate-200/60');
+            activeBtn.classList.remove('text-slate-600');
+
+            if (tab === 'figma') {
+                renderFigmaCanvas();
+            }
+        }
+
+        // --- FIGMA CANVAS LOGIC ---
+        function initFigmaCanvas() {
+            const viewport = document.getElementById('figma-canvas-viewport');
+            
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.figma-node-card')) return;
+                if (activeTool === 'hand' || e.shiftKey || e.button === 1) {
+                    isPanning = true;
+                    startX = e.clientX - figmaPanX;
+                    startY = e.clientY - figmaPanY;
+                    viewport.style.cursor = 'grabbing';
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    figmaPanX = e.clientX - startX;
+                    figmaPanY = e.clientY - startY;
+                    updateFigmaTransform();
+                } else if (isDraggingNode && draggedNodeId) {
+                    const rect = viewport.getBoundingClientRect();
+                    const mouseX = (e.clientX - rect.left - figmaPanX) / figmaZoom;
+                    const mouseY = (e.clientY - rect.top - figmaPanY) / figmaZoom;
+                    
+                    architectureNodes[draggedNodeId].x = Math.max(20, mouseX - 120);
+                    architectureNodes[draggedNodeId].y = Math.max(20, mouseY - 40);
+                    
+                    renderFigmaNodes();
+                    renderFigmaConnections();
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isPanning = false;
+                isDraggingNode = false;
+                draggedNodeId = null;
+                viewport.style.cursor = activeTool === 'hand' ? 'grab' : 'crosshair';
+            });
+
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.08 : -0.08;
+                zoomFigma(delta);
+            }, { passive: false });
+        }
+
+        function setFigmaTool(tool) {
+            activeTool = tool;
+            document.getElementById('tool-select').className = tool === 'select' ? 'px-3 py-1.5 rounded-lg bg-white text-indigo-600 font-semibold shadow-sm border border-slate-200/80' : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold';
+            document.getElementById('tool-hand').className = tool === 'hand' ? 'px-3 py-1.5 rounded-lg bg-white text-indigo-600 font-semibold shadow-sm border border-slate-200/80' : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold';
+            const viewport = document.getElementById('figma-canvas-viewport');
+            viewport.style.cursor = tool === 'hand' ? 'grab' : 'crosshair';
+        }
+
+        function zoomFigma(delta) {
+            figmaZoom = Math.min(Math.max(0.4, figmaZoom + delta), 2.0);
+            document.getElementById('zoom-level').innerText = `${Math.round(figmaZoom * 100)}%`;
+            updateFigmaTransform();
+        }
+
+        function resetFigmaView() {
+            figmaZoom = 1.0;
+            figmaPanX = 50;
+            figmaPanY = 30;
+            document.getElementById('zoom-level').innerText = '100%';
+            updateFigmaTransform();
+        }
+
+        function updateFigmaTransform() {
+            const world = document.getElementById('figma-world');
+            const svg = document.getElementById('figma-lines-svg');
+            const bg = document.getElementById('figma-grid-bg');
+            
+            world.style.transform = `translate(${figmaPanX}px, ${figmaPanY}px) scale(${figmaZoom})`;
+            svg.style.transform = `translate(${figmaPanX}px, ${figmaPanY}px) scale(${figmaZoom})`;
+            bg.style.backgroundPosition = `${figmaPanX}px ${figmaPanY}px`;
+        }
+
+        function renderFigmaCanvas() {
+            renderFigmaNodes();
+            renderFigmaConnections();
+            updateFigmaTransform();
+        }
+
+        function renderFigmaNodes() {
+            const world = document.getElementById('figma-world');
+            world.innerHTML = Object.values(architectureNodes).map(node => `
+                <div id="figma-card-${node.id}" 
+                     onmousedown="startNodeDrag(event, '${node.id}')"
+                     onclick="selectNode('${node.id}')"
+                     style="left: ${node.x}px; top: ${node.y}px;"
+                     class="figma-node-card absolute w-64 bg-white/95 backdrop-blur border-2 border-${node.color || 'indigo'}-200 hover:border-${node.color || 'indigo'}-500 rounded-2xl p-4 shadow-md hover:shadow-xl cursor-move text-slate-900 z-10 transition-all">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2">
+                        <span class="text-[10px] font-mono text-${node.color || 'indigo'}-700 bg-${node.color || 'indigo'}-50 px-2 py-0.5 rounded font-semibold border border-${node.color || 'indigo'}-200">${node.tech.split('/')[0]}</span>
+                        <i class="fa-solid fa-grip-dots-vertical text-slate-300 text-xs"></i>
+                    </div>
+                    <h4 class="font-bold text-xs text-slate-900">${node.title}</h4>
+                    <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">${node.desc}</p>
+                    <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] font-mono text-indigo-600 font-semibold truncate">
+                        ${node.api}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function startNodeDrag(e, nodeId) {
+            if (activeTool === 'hand') return;
+            e.stopPropagation();
+            isDraggingNode = true;
+            draggedNodeId = nodeId;
+        }
+
+        function renderFigmaConnections() {
+            const svg = document.getElementById('figma-lines-svg');
+            svg.innerHTML = nodeConnections.map(conn => {
+                const fromNode = architectureNodes[conn.from];
+                const toNode = architectureNodes[conn.to];
+                if (!fromNode || !toNode) return '';
+
+                const x1 = fromNode.x + 128;
+                const y1 = fromNode.y + 70;
+                const x2 = toNode.x + 128;
+                const y2 = toNode.y + 10;
+
+                const controlY = y1 + (y2 - y1) / 2;
+
+                return `
+                    <path d="M ${x1} ${y1} C ${x1} ${controlY}, ${x2} ${controlY}, ${x2} ${y2}" 
+                          stroke="#6366f1" stroke-width="2.5" fill="none" stroke-dasharray="6,4" opacity="0.7" />
+                    <circle cx="${x2}" cy="${y2}" r="4" fill="#4f46e5" />
+                `;
+            }).join('');
+        }
+
+        // Architecture Node Selection & Editing
+        function selectNode(id) {
+            selectedNodeId = id;
+            document.querySelectorAll('.arch-card').forEach(c => {
+                c.classList.remove('node-pulse', 'border-indigo-500', 'ring-2', 'ring-indigo-500/30');
+            });
+
+            const card = document.getElementById(id);
+            if (card) {
+                card.classList.add('node-pulse', 'ring-2', 'ring-indigo-500/30');
+            }
+
+            const data = architectureNodes[id];
+            if (data) {
+                document.getElementById('edit-node-title').value = data.title;
+                document.getElementById('edit-node-tech').value = data.tech;
+                document.getElementById('edit-node-desc').value = data.desc;
+                document.getElementById('edit-node-api').value = data.api;
+                document.getElementById('node-tag').innerText = id;
+            }
+        }
+
+        function saveNodeDetails(e) {
+            e.preventDefault();
+            if (!selectedNodeId || !architectureNodes[selectedNodeId]) return;
+
+            architectureNodes[selectedNodeId].title = document.getElementById('edit-node-title').value;
+            architectureNodes[selectedNodeId].tech = document.getElementById('edit-node-tech').value;
+            architectureNodes[selectedNodeId].desc = document.getElementById('edit-node-desc').value;
+            architectureNodes[selectedNodeId].api = document.getElementById('edit-node-api').value;
+
+            const card = document.getElementById(selectedNodeId);
+            if (card) {
+                const titleEl = card.querySelector('h3');
+                if (titleEl) titleEl.innerText = architectureNodes[selectedNodeId].title;
+            }
+
+            showToast('Componente de arquitectura actualizado');
+        }
+
+        function resetArchData() {
+            location.reload();
+        }
+
+        // Sequence Steps Logic
+        function renderSequenceSteps() {
+            const container = document.getElementById('sequence-steps-container');
+            container.innerHTML = sequenceSteps.map((step, idx) => `
+                <div class="flex items-start space-x-4 p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 hover:border-purple-300 transition">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-700 border border-purple-200 flex items-center justify-center font-bold text-xs">
+                        ${step.id}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <h4 class="font-bold text-sm text-slate-900">${step.title}</h4>
+                            <span class="text-[10px] font-mono font-semibold bg-white text-purple-700 px-2.5 py-0.5 rounded border border-purple-200 shadow-sm">${step.actor}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">${step.desc}</p>
+                    </div>
+                    <button onclick="deleteSeqStep(${step.id})" class="text-slate-400 hover:text-rose-500 text-xs p-1">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addSeqStep() {
+            const nextId = sequenceSteps.length + 1;
+            sequenceSteps.push({
+                id: nextId,
+                title: `Nuevo Paso ${nextId}`,
+                actor: 'Sistema',
+                desc: 'Descripción detallada de la acción realizada en este paso.'
+            });
+            renderSequenceSteps();
+            showToast('Paso añadido al diagrama de secuencia');
+        }
+
+        function deleteSeqStep(id) {
+            sequenceSteps = sequenceSteps.filter(s => s.id !== id);
+            sequenceSteps.forEach((s, i) => s.id = i + 1);
+            renderSequenceSteps();
+            showToast('Paso eliminado');
+        }
+
+        // Data Entities Logic
+        function renderEntities() {
+            const grid = document.getElementById('entities-grid');
+            grid.innerHTML = dataEntities.map((ent, idx) => `
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-table text-${ent.color}-600"></i> ${ent.name}
+                        </h3>
+                        <button onclick="addAttribute(${idx})" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 font-semibold transition">
+                            + Atributo
+                        </button>
+                    </div>
+                    <div class="space-y-2">
+                        ${ent.attributes.map((attr, aIdx) => `
+                            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
+                                <div>
+                                    <span class="font-mono text-slate-900 font-semibold">${attr.name}</span>
+                                    <span class="ml-2 text-[10px] font-mono font-semibold text-${ent.color}-700 bg-${ent.color}-50 px-1.5 py-0.5 rounded border border-${ent.color}-200">${attr.type}</span>
+                                </div>
+                                <span class="text-[11px] text-slate-500 truncate max-w-[180px]">${attr.desc}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addEntity() {
+            const name = prompt('Nombre de la entidad (ej: AuditLog):', 'NuevaEntidad');
+            if (!name) return;
+            dataEntities.push({
+                name: name,
+                color: 'indigo',
+                attributes: [
+                    { name: 'id', type: 'UUID', desc: 'Identificador único' }
+                ]
+            });
+            renderEntities();
+            showToast('Entidad creada');
+        }
+
+        function addAttribute(entityIdx) {
+            const attrName = prompt('Nombre del campo:', 'nuevo_campo');
+            if (!attrName) return;
+            const attrType = prompt('Tipo de dato (STRING, INT, BOOLEAN, etc.):', 'STRING');
+            dataEntities[entityIdx].attributes.push({
+                name: attrName,
+                type: attrType || 'STRING',
+                desc: 'Descripción del atributo'
+            });
+            renderEntities();
+            showToast('Atributo añadido');
+        }
+
+        // Lab Checklist Logic
+        function renderLabChecklist() {
+            const container = document.getElementById('lab-checklist');
+            container.innerHTML = labChecklist.map((item) => `
+                <div class="flex items-start space-x-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleLabItem(${item.id})" class="mt-0.5 rounded bg-white border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <div class="flex-1">
+                        <div class="font-bold text-xs text-slate-900 ${item.checked ? 'line-through text-slate-400' : ''}">${item.title}</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">${item.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleLabItem(id) {
+            const item = labChecklist.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                renderLabChecklist();
+            }
+        }
+
+        function addLabItem() {
+            const input = document.getElementById('new-lab-item');
+            if (!input.value.trim()) return;
+            labChecklist.push({
+                id: Date.now(),
+                title: input.value.trim(),
+                desc: 'Requerimiento registrado manualmente para el laboratorio.',
+                checked: false
+            });
+            input.value = '';
+            renderLabChecklist();
+            showToast('Item añadido a la checklist');
+        }
+
+        // Export Functionality
+        function exportJSON() {
+            const fullSpec = {
+                architecture: architectureNodes,
+                sequenceFlow: sequenceSteps,
+                dataModel: dataEntities,
+                labEnvironment: labChecklist
+            };
+
+            const jsonStr = JSON.stringify(fullSpec, null, 2);
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = jsonStr;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            showToast('Especificación completa copiada al portapapeles en formato JSON');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
